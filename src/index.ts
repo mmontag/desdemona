@@ -1,8 +1,10 @@
 import * as THREE from 'three';
 import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls';
 // @ts-ignore
-import vertexShader from './vertex.glsl';
-import fragmentShader from './fragment.glsl';
+import starfieldVert from './starfield_vert.glsl';
+import starfieldFrag from './starfield_frag.glsl';
+import gridVert from './grid_vert.glsl';
+import gridFrag from './grid_frag.glsl';
 import {VRButton} from 'three/examples/jsm/webxr/VRButton.js';
 
 const params = (new URL(document.URL)).searchParams;
@@ -54,8 +56,8 @@ const shaderMat = new THREE.ShaderMaterial({
         farplane: {value: 200},
         size: {value: 1.0},
     },
-    vertexShader,
-    fragmentShader,
+    vertexShader: starfieldVert,
+    fragmentShader: starfieldFrag,
     transparent: true,
     depthWrite: false,
     blending: THREE.AdditiveBlending,
@@ -67,8 +69,8 @@ const shaderMat2 = new THREE.ShaderMaterial({
         farplane: {value: 200},
         size: {value: 0.01},
     },
-    vertexShader,
-    fragmentShader,
+    vertexShader: starfieldVert,
+    fragmentShader: starfieldFrag,
     // transparent: true,
     // depthWrite: false,
     // blending: THREE.AdditiveBlending,
@@ -76,44 +78,10 @@ const shaderMat2 = new THREE.ShaderMaterial({
 
 const plane = new THREE.PlaneGeometry(10000, 10000, 10, 10);
 plane.rotateX(-Math.PI / 2);
-const glsl = x => x;
+// const glsl = x => x;
 scene.add(new THREE.Mesh(plane, new THREE.ShaderMaterial({
-    vertexShader: glsl`
-    varying vec3 vertex;
-    void main() {
-        vertex = position;
-        vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
-        gl_Position = projectionMatrix * mvPosition;
-    }
-    `,
-    fragmentShader: `
-    varying vec3 vertex;
-
-void main() {
-  // Pick a coordinate to visualize in a grid
-  vec2 coord = vertex.xz;
-  // vec2 coord = localPos.xy; // * vec2(8, 8);
-  
-
-  // Compute anti-aliased world-space grid lines
-  // coord.x = coord.x + sin(coord.x) / 10.0;
-  vec2 grid1 = abs(fract(coord - 0.5) - 0.5) / fwidth(coord);
-  vec2 grid2 = abs(fract((coord/10.0) - 0.5) - 0.5) / fwidth(coord / 10.0);
-  vec2 grid3 = abs(fract((coord/100.0) - 0.5) - 0.5) / fwidth(coord / 100.0);
-  
-  float line1 = min(grid1.x, grid1.y) / 0.65;
-  float line2 = min(grid2.x, grid2.y) / 1.25;
-  float line3 = min(grid3.x, grid3.y) / 2.0;
-  float line = min( min(line1, line2), line3);
-
-  // Just visualize the grid lines directly
-  float color = 1.0 - min(line, 1.0);
-
-  // Apply gamma correction
-  color = pow(color, 1.0 / 2.2);
-  gl_FragColor = vec4(vec3(color), 0.5);
-}
-    `,
+    vertexShader: gridVert,
+    fragmentShader: gridFrag,
     transparent: true,
     depthWrite: false,
     blending: THREE.AdditiveBlending,
