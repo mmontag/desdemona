@@ -5,6 +5,9 @@ import starfieldFrag from './starfield_frag.glsl';
 import gridVert from './grid_vert.glsl';
 import gridFrag from './grid_frag.glsl';
 import {VRButton} from 'three/examples/jsm/webxr/VRButton.js';
+import GUI from 'lil-gui';
+
+const gui = new GUI();
 
 const nearClip = 1e-7;
 const farClip = 1e8;
@@ -34,7 +37,6 @@ renderer.xr.getCamera().far = 50000;
 renderer.xr.getCamera().cameras.map(c => c.far = 50000);
 if (isVrEnabled) {
     document.body.appendChild(VRButton.createButton(renderer));
-    // renderer.xr.setFramebufferScaleFactor(4);
 } else {
     controls.autoRotate = true;
 }
@@ -64,7 +66,8 @@ const plane = new THREE.PlaneGeometry(1e4, 1e4, 100, 100);
 plane.rotateX(-Math.PI / 2);
 const gridMat = new THREE.ShaderMaterial({
     uniforms: {
-        logDist: {value: 1}
+        logDist: {value: 1},
+        intensity: {value: 0.33}
     },
     vertexShader: gridVert,
     fragmentShader: gridFrag,
@@ -72,9 +75,13 @@ const gridMat = new THREE.ShaderMaterial({
     depthWrite: false,
     blending: THREE.AdditiveBlending,
     side: THREE.DoubleSide,
+    opacity: 1.0,
 });
 const planeMesh = new THREE.Mesh(plane, gridMat);
 scene.add(planeMesh);
+const gridFolder = gui.addFolder('Grid');
+gridFolder.add(gridMat.uniforms.intensity, 'value', 0, 1).name('intensity');
+gridFolder.add(planeMesh, 'visible');
 
 // Point Cubes (size reference)
 
@@ -85,7 +92,7 @@ scene.add(planeMesh);
 // scene.add(new THREE.Points(geo2, starMatTiny));
 
 
-const points = makePoints(500000, 1e6);
+const points = makePoints(5e5, 1e6);
 scene.add(points);
 
 window.addEventListener('resize', onWindowResize, false);

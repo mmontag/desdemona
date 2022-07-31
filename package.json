@@ -24,5 +24,8 @@
     "webpack-dev-server": "^4.9.3",
     "webpack-glsl-loader": "^1.0.1",
     "webpack-merge": "^5.8.0"
+  },
+  "dependencies": {
+    "lil-gui": "^0.17.0"
   }
 }
