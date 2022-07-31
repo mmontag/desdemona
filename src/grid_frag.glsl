@@ -1,22 +1,24 @@
 varying vec3 vertex;
-
+uniform float logDist;
+float rand(float n){return fract(sin(n) * 43758.5453123);}
+float rand(vec2 n) {
+  return fract(sin(dot(n, vec2(12.9898, 4.1414))) * 43758.5453);
+}
 void main() {
-  // Pick a coordinate to visualize in a grid
   vec2 coord = vertex.xz;
-  // vec2 coord = localPos.xy; // * vec2(8, 8);
 
-  // Compute anti-aliased world-space grid lines
-  // coord.x = coord.x + sin(coord.x) / 10.0;
-  vec2 grid1 = abs(fract(coord - 0.5) - 0.5) / fwidth(coord);
-  vec2 grid2 = abs(fract((coord/10.0) - 0.5) - 0.5) / fwidth(coord / 10.0);
-  vec2 grid3 = abs(fract((coord/100.0) - 0.5) - 0.5) / fwidth(coord / 100.0);
+  // Noisy Sampling - bad attempt at anisotropic filtering
+  // coord += rand(coord) * fwidth(coord) * vec2(0.5, 0.5);
 
-  float line1 = min(grid1.x, grid1.y) / 0.65;
-  float line2 = min(grid2.x, grid2.y) / 1.25;
-  float line3 = min(grid3.x, grid3.y) / 2.0;
-  float line = min( min(line1, line2), line3);
+  vec2 grid = vec2(1.,1.);
+  int levels = 3;
+  for (int i = 0; i < levels; i++) {
+    float unit = pow(10.0, float(i-1));
+    float thickness = 1.0 / (3.8-float(i));
+    grid = min(grid, abs(fract(coord * unit - 0.5) - 0.5) / fwidth(coord * unit * 0.5) * thickness);
+  }
 
-  // Just visualize the grid lines directly
+  float line = min(grid.x, grid.y);
   float color = 1.0 - min(line, 1.0);
 
   // Apply gamma correction
