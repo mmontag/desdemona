@@ -71,6 +71,7 @@ const gridMat = new THREE.ShaderMaterial({
     transparent: true,
     depthWrite: false,
     blending: THREE.AdditiveBlending,
+    side: THREE.DoubleSide,
 });
 const planeMesh = new THREE.Mesh(plane, gridMat);
 scene.add(planeMesh);
