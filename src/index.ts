@@ -25,6 +25,7 @@ camera.position.y = 500;
 
 const renderer = new THREE.WebGLRenderer({antialias: true, logarithmicDepthBuffer: true});
 renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.outputEncoding = THREE.sRGBEncoding;
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.autoRotateSpeed = 0.2;
