@@ -6,36 +6,57 @@ import gridVert from './grid_vert.glsl';
 import gridFrag from './grid_frag.glsl';
 import {VRButton} from 'three/examples/jsm/webxr/VRButton.js';
 import GUI from 'lil-gui';
+// @ts-ignore
+import {Text} from 'troika-three-text';
+// @ts-ignore
+// import ThreeMeshUI from 'three-mesh-ui';
+// import * as ThreeMeshUI from 'three-mesh-ui/build/three-mesh-ui.module.js';
+
+const moonDiffuseMap = require('./assets/lroc_color_poles_2k.jpg');
+const moonBumpMap = require('./assets/lroc_color_poles_2k_disp.jpg');
 
 const gui = new GUI();
 
 const nearClip = 1e-7;
-const farClip = 1e8;
+const farClip = 1e27;
 const minDistance = 1.01e0;  // Just above threshold
 const maxDistance = 0.99e27; // Just below threshold
 
 const params = (new URL(document.URL)).searchParams;
 const isVrEnabled = !!params.get('vr');
+
 const scene = new THREE.Scene();
+// scene.add(new THREE.AmbientLight(0x111111));
+const light = new THREE.DirectionalLight(0xffffff, 4);
+light.position.set(100, 100, 100);
+scene.add(light);
+
+// const light2 = new THREE.PointLight(0xffffff, 2000000);
+// light2.position.set(1000, 1000, 1000000);
+// scene.add(light2);
+// scene.background = new THREE.Color( 0xefd1b5 );
+// scene.fog = new THREE.FogExp2( 0xefd1b5, 0.000001 );
 
 const origin = new THREE.Vector3(0, 0, 0);
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, nearClip, farClip);
-camera.position.z = 500;
-camera.position.y = 500;
+camera.position.x = -1;
+camera.position.y = 0.75;
+camera.position.z = 2;
 
 const renderer = new THREE.WebGLRenderer({antialias: true, logarithmicDepthBuffer: true});
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.physicallyCorrectLights = true;
 
 const controls = new OrbitControls(camera, renderer.domElement);
-controls.autoRotateSpeed = 0.2;
+controls.autoRotateSpeed = 0.0;
 controls.minDistance = minDistance;
 controls.maxDistance = maxDistance;
 
 renderer.xr.enabled = isVrEnabled;
 renderer.xr.setFramebufferScaleFactor(4.0);
-renderer.xr.getCamera().far = 50000;
-renderer.xr.getCamera().cameras.map(c => c.far = 50000);
+renderer.xr.getCamera().far = maxDistance;
+renderer.xr.getCamera().cameras.map(c => c.far = maxDistance);
 if (isVrEnabled) {
     document.body.appendChild(VRButton.createButton(renderer));
 } else {
@@ -43,6 +64,27 @@ if (isVrEnabled) {
 }
 
 document.body.appendChild(renderer.domElement);
+
+
+// const container = new ThreeMeshUI.Block({
+//     width: 1.2,
+//     height: 0.7,
+//     padding: 0.2,
+//     fontFamily: './assets/Roboto-msdf.json',
+//     fontTexture: './assets/Roboto-msdf.png',
+// });
+//
+// const text = new ThreeMeshUI.Text({
+//     content: "Some text to be displayed"
+// });
+// container.add( text );
+//
+// // scene is a THREE.Scene (see three.js)
+// scene.add( container );
+//
+// // This is typically done in the render loop :
+// ThreeMeshUI.update();
+
 
 function getStarMaterial(color: number, farplane: number, size: number) {
     return new THREE.ShaderMaterial({
@@ -73,16 +115,99 @@ const gridMat = new THREE.ShaderMaterial({
     vertexShader: gridVert,
     fragmentShader: gridFrag,
     transparent: true,
-    depthWrite: false,
-    blending: THREE.AdditiveBlending,
+    depthWrite: true,
+    depthTest: true,
+    // blending: THREE.AdditiveBlending,
     side: THREE.DoubleSide,
     opacity: 1.0,
 });
 const planeMesh = new THREE.Mesh(plane, gridMat);
+planeMesh.renderOrder = 1000;
 scene.add(planeMesh);
+
+
+const bodies = [
+    // { size: .01, scale: 0.0001, label: 'microscopic (1µm)' }, // FIXME - triangulating text fails at this size, so we scale instead
+    // { size: .01, scale: 0.1, label: 'minuscule (1mm)' },
+    // { size: .01, scale: 1.0, label: 'tiny (1cm)' },
+    {size: 1, scale: 1.0, label: '1 meter'},
+    {size: 10, scale: 1.0, label: 'tree-sized (10m)'},
+    {size: 100, scale: 1.0, label: 'building-sized (100m)'},
+    {size: 1000, scale: 1.0, label: 'a kilometer (1km)'},
+    {size: 10000, scale: 1.0, label: 'city-sized (10km)'},
+    {
+        size: 3400000,
+        scale: 1.0,
+        diffuseMap: moonDiffuseMap,
+        bumpMap: moonBumpMap,
+        label: 'moon-sized (3,400 Km)',
+    },
+    {size: 12000000, scale: 1.0, label: 'planet-sized (12,000 km)'},
+    {size: 1400000000, scale: 1.0, label: 'sun-sized (1,400,000 km)'},
+    {size: 7.47e12, scale: 1.0, label: 'solar system-sized (50Au)'},
+    {size: 9.4605284e15, scale: 1.0, label: 'gargantuan (1 light year)'},
+    {size: 3.08567758e16, scale: 1.0, label: 'ludicrous (1 parsec)'},
+    {size: 1e18, scale: 1.0, label: 'mind boggling (100 light years)'}
+];
+
+const sphere = new THREE.SphereGeometry(0.5, 24, 24);
+let runningPosition = 0;
+const spacingFactor = 1.0;
+for (let i = 0; i < bodies.length; i++) {
+    const body = bodies[i];
+    const scale = body.scale || 1;
+    const color = new THREE.Color().setHSL((i % 10) / 10, 0.5, 0.6);
+    const mat = new THREE.MeshPhongMaterial({
+        color: color,
+        specular: 0x050505,
+        shininess: 50,
+        emissive: 0,
+    });
+    const group = new THREE.Group();
+    // group.position.x += Math.pow(body.size, 0.96);
+    group.position.y += body.size * 0.5;
+    group.position.z = runningPosition - body.size * 0.5; //(Math.pow(body.size, 1) + lastSize);
+    const spacing = body.size * spacingFactor;
+    runningPosition = group.position.z - body.size * 0.5 - spacing;
+    scene.add(group);
+
+    // Text Label
+    const label = new Text();
+    label.position.y -= body.size * 0.5;
+    label.position.z += body.size * 0.5;
+    label.text = body.label;
+    label.fontSize = body.size * 0.2;
+    label.anchorY = 'bottom';
+    label.anchorX = 'center';
+    label.color = 0xc0c0c0;
+    label.sync();
+    group.add(label);
+
+    // Sphere Geometry
+    let bodymesh;
+    if (body.diffuseMap) {
+        const loader = new THREE.TextureLoader();
+        const diffuseTex = loader.load(body.diffuseMap);
+        const bumpTex = loader.load(body.bumpMap);
+        const material = new THREE.MeshStandardMaterial({
+            map: diffuseTex,
+            bumpMap: bumpTex,
+            bumpScale: 10000.0,
+        });
+        bodymesh = new THREE.Mesh(sphere, material);
+        material.needsUpdate = true;
+    } else {
+        bodymesh = new THREE.Mesh(sphere, mat);
+    }
+    bodymesh.scale.multiplyScalar(body.size);
+    group.add(bodymesh);
+}
+
+
 const gridFolder = gui.addFolder('Grid');
 gridFolder.add(gridMat.uniforms.intensity, 'value', 0, 1).name('intensity');
 gridFolder.add(planeMesh, 'visible');
+gui.add(controls, 'autoRotateSpeed', 0, 1);
 
 // Point Cubes (size reference)
 
@@ -93,8 +218,8 @@ gridFolder.add(planeMesh, 'visible');
 // scene.add(new THREE.Points(geo2, starMatTiny));
 
 
-const points = makePoints(5e5, 1e6);
-scene.add(points);
+// const points = makePoints(5e5, 1e6);
+// scene.add(points);
 
 window.addEventListener('resize', onWindowResize, false);
 
@@ -105,6 +230,8 @@ function onWindowResize() {
     render();
 }
 
+let speed = 0.1;
+
 function animate() {
     requestAnimationFrame(animate);
 
@@ -112,6 +239,11 @@ function animate() {
     // cube.rotation.y += 0.01;
 
     controls.update();
+
+    // Accelerate to speed of light.
+    speed = Math.min(300000, speed * 1.01);
+    // Fly away at speed of light.
+    // camera.position.sub(camera.getWorldDirection(origin).multiplyScalar(speed));
 
     const logDist = Math.log10(camera.position.distanceTo(origin));
     gridMat.uniforms.logDist.value = logDist;
