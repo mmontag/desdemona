@@ -1,3 +1,10 @@
+#ifdef USE_LOGDEPTHBUF
+	uniform float logDepthBufFC;
+	#ifdef USE_LOGDEPTHBUF_EXT
+		varying float vFragDepth;
+	#endif
+#endif
+
 varying vec3 vertex;
 uniform float logDist;
 uniform float intensity;
@@ -33,4 +40,8 @@ void main() {
   // Apply gamma correction
   color = pow(color, 1.0 / 2.2);
   gl_FragColor = vec4(vec3(1.0), color * intensity);
+
+  #if defined(USE_LOGDEPTHBUF) && defined(USE_LOGDEPTHBUF_EXT)
+    gl_FragDepthEXT = log2(vFragDepth) * logDepthBufFC * 0.5;
+  #endif
 }
