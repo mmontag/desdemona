@@ -15,6 +15,15 @@ import {Text} from 'troika-three-text';
 const moonDiffuseMap = require('./assets/lroc_color_poles_2k.jpg');
 const moonBumpMap = require('./assets/lroc_color_poles_2k_disp.jpg');
 
+// https://www.solarsystemscope.com/textures/
+const earthDiffuseMap = require('./assets/8k_earth_daymap.jpg');
+const earthSpecularMap = require('./assets/8k_earth_specular_map.png');
+const earthCloudsAlphaMap = require('./assets/2k_earth_clouds.jpg');
+// http://www.shadedrelief.com/natural3/pages/textures.html
+const earthDiffuseMap2 = require('./assets/8k_earth_4_no_ice_clouds_mts.jpg');
+const earthSpecularMap2 = require('./assets/8k_earth_water.png');
+const earthBumpMap = require('./assets/8k_earth_bump.jpg');
+
 const gui = new GUI();
 
 const nearClip = 1e-7;
@@ -39,13 +48,21 @@ scene.add(light);
 
 const origin = new THREE.Vector3(0, 0, 0);
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, nearClip, farClip);
-camera.position.x = -1;
-camera.position.y = 0.75;
-camera.position.z = 2;
+
+// 1 meter
+// camera.position.x = -1;
+// camera.position.y = 0.75;
+// camera.position.z = 2;
+
+// Earth
+camera.position.x = -10000000;
+camera.position.y = 7500000;
+camera.position.z = 20000000;
+
 
 const renderer = new THREE.WebGLRenderer({antialias: true, logarithmicDepthBuffer: true});
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.outputEncoding = THREE.sRGBEncoding;
+// renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.physicallyCorrectLights = true;
 
 const controls = new OrbitControls(camera, renderer.domElement);
@@ -126,6 +143,7 @@ planeMesh.renderOrder = 1000;
 scene.add(planeMesh);
 
 
+const loader = new THREE.TextureLoader();
 const bodies = [
     // { size: .01, scale: 0.0001, label: 'microscopic (1µm)' }, // FIXME - triangulating text fails at this size, so we scale instead
     // { size: .01, scale: 0.1, label: 'minuscule (1mm)' },
@@ -136,13 +154,33 @@ const bodies = [
     {size: 1000, scale: 1.0, label: 'a kilometer (1km)'},
     {size: 10000, scale: 1.0, label: 'city-sized (10km)'},
     {
+        label: 'Moon (3,400 km)',
         size: 3400000,
         scale: 1.0,
-        diffuseMap: moonDiffuseMap,
-        bumpMap: moonBumpMap,
-        label: 'moon-sized (3,400 Km)',
+        material: new THREE.MeshStandardMaterial({
+            map: loader.load(moonDiffuseMap),
+            bumpMap: loader.load(moonBumpMap),
+            bumpScale: 10000.0,
+        }),
     },
-    {size: 12000000, scale: 1.0, label: 'planet-sized (12,000 km)'},
+    {
+        label: 'Earth (12,700 km)',
+        size: 12742000,
+        scale: 1.0,
+        material: new THREE.MeshPhongMaterial({
+            map: loader.load(earthDiffuseMap2),
+            specularMap: loader.load(earthSpecularMap2),
+            shininess: 50.0,
+            // roughnessMap: loader.load(earthSpecularMap2),
+            // reflectivity: 0.5,
+            bumpMap: loader.load(earthBumpMap),
+            bumpScale: 10000.0,
+        }),
+        material2: new THREE.MeshPhongMaterial({
+            color: 0xFFFFFF,
+            alphaMap: loader.load(earthCloudsAlphaMap),
+        }),
+    },
     {size: 1400000000, scale: 1.0, label: 'sun-sized (1,400,000 km)'},
     {size: 7.47e12, scale: 1.0, label: 'solar system-sized (50Au)'},
     {size: 9.4605284e15, scale: 1.0, label: 'gargantuan (1 light year)'},
@@ -185,17 +223,9 @@ for (let i = 0; i < bodies.length; i++) {
 
     // Sphere Geometry
     let bodymesh;
-    if (body.diffuseMap) {
-        const loader = new THREE.TextureLoader();
-        const diffuseTex = loader.load(body.diffuseMap);
-        const bumpTex = loader.load(body.bumpMap);
-        const material = new THREE.MeshStandardMaterial({
-            map: diffuseTex,
-            bumpMap: bumpTex,
-            bumpScale: 10000.0,
-        });
-        bodymesh = new THREE.Mesh(sphere, material);
-        material.needsUpdate = true;
+    if (body.material) {
+        bodymesh = new THREE.Mesh(sphere, body.material);
+        body.material.needsUpdate = true;
     } else {
         bodymesh = new THREE.Mesh(sphere, mat);
     }
