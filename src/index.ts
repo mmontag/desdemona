@@ -24,6 +24,8 @@ const earthDiffuseMap2 = require('./assets/8k_earth_4_no_ice_clouds_mts.jpg');
 const earthSpecularMap2 = require('./assets/8k_earth_water.png');
 const earthBumpMap = require('./assets/8k_earth_bump.jpg');
 
+const sunDiffuseMap = require('./assets/2k_sun.jpg');
+
 const gui = new GUI();
 
 const nearClip = 1e-7;
@@ -144,6 +146,7 @@ scene.add(planeMesh);
 
 
 const loader = new THREE.TextureLoader();
+const sunMap = loader.load(sunDiffuseMap);
 const bodies = [
     // { size: .01, scale: 0.0001, label: 'microscopic (1µm)' }, // FIXME - triangulating text fails at this size, so we scale instead
     // { size: .01, scale: 0.1, label: 'minuscule (1mm)' },
@@ -181,7 +184,16 @@ const bodies = [
             alphaMap: loader.load(earthCloudsAlphaMap),
         }),
     },
-    {size: 1400000000, scale: 1.0, label: 'sun-sized (1,400,000 km)'},
+    {
+        label: 'sun-sized (1,400,000 km)',
+        size: 1391000000,
+        scale: 1.0,
+        material: new THREE.MeshPhongMaterial({
+            map: sunMap,
+            emissiveMap: sunMap,
+            emissive: 0xffffff,
+        }),
+    },
     {size: 7.47e12, scale: 1.0, label: 'solar system-sized (50Au)'},
     {size: 9.4605284e15, scale: 1.0, label: 'gargantuan (1 light year)'},
     {size: 3.08567758e16, scale: 1.0, label: 'ludicrous (1 parsec)'},
