@@ -8,6 +8,7 @@ import {VRButton} from 'three/examples/jsm/webxr/VRButton.js';
 import GUI from 'lil-gui';
 // @ts-ignore
 import {Text} from 'troika-three-text';
+import {sRGBEncoding} from "three";
 // @ts-ignore
 // import ThreeMeshUI from 'three-mesh-ui';
 // import * as ThreeMeshUI from 'three-mesh-ui/build/three-mesh-ui.module.js';
@@ -64,7 +65,7 @@ camera.position.z = 20000000;
 
 const renderer = new THREE.WebGLRenderer({antialias: true, logarithmicDepthBuffer: true});
 renderer.setSize(window.innerWidth, window.innerHeight);
-// renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.physicallyCorrectLights = true;
 
 const controls = new OrbitControls(camera, renderer.domElement);
@@ -146,7 +147,12 @@ scene.add(planeMesh);
 
 
 const loader = new THREE.TextureLoader();
-const sunMap = loader.load(sunDiffuseMap);
+const sunTex = loader.load(sunDiffuseMap);
+sunTex.encoding = THREE.sRGBEncoding;
+const earthTex = loader.load(earthDiffuseMap2);
+earthTex.encoding = THREE.sRGBEncoding;
+const moonTex = loader.load(moonDiffuseMap);
+moonTex.encoding = THREE.sRGBEncoding;
 const bodies = [
     // { size: .01, scale: 0.0001, label: 'microscopic (1µm)' }, // FIXME - triangulating text fails at this size, so we scale instead
     // { size: .01, scale: 0.1, label: 'minuscule (1mm)' },
@@ -161,7 +167,7 @@ const bodies = [
         size: 3400000,
         scale: 1.0,
         material: new THREE.MeshStandardMaterial({
-            map: loader.load(moonDiffuseMap),
+            map: moonTex,
             bumpMap: loader.load(moonBumpMap),
             bumpScale: 10000.0,
         }),
@@ -171,7 +177,7 @@ const bodies = [
         size: 12742000,
         scale: 1.0,
         material: new THREE.MeshPhongMaterial({
-            map: loader.load(earthDiffuseMap2),
+            map: earthTex,
             specularMap: loader.load(earthSpecularMap2),
             shininess: 50.0,
             // roughnessMap: loader.load(earthSpecularMap2),
@@ -189,9 +195,10 @@ const bodies = [
         size: 1391000000,
         scale: 1.0,
         material: new THREE.MeshPhongMaterial({
-            map: sunMap,
-            emissiveMap: sunMap,
+            map: sunTex,
+            emissiveMap: sunTex,
             emissive: 0xffffff,
+            shininess: 0,
         }),
     },
     {size: 7.47e12, scale: 1.0, label: 'solar system-sized (50Au)'},
@@ -206,7 +213,7 @@ const spacingFactor = 1.0;
 for (let i = 0; i < bodies.length; i++) {
     const body = bodies[i];
     const scale = body.scale || 1;
-    const color = new THREE.Color().setHSL((i % 10) / 10, 0.5, 0.6);
+    const color = new THREE.Color().setHSL((i % 10) / 10, 0.5, 0.6).convertSRGBToLinear();
     const mat = new THREE.MeshPhongMaterial({
         color: color,
         specular: 0x050505,
