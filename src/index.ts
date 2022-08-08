@@ -4,6 +4,8 @@ import starfieldVert from './starfield_vert.glsl';
 import starfieldFrag from './starfield_frag.glsl';
 import gridVert from './grid_vert.glsl';
 import gridFrag from './grid_frag.glsl';
+import sunVert from './sun_vert.glsl';
+import sunFrag from './sun_frag.glsl';
 import {VRButton} from 'three/examples/jsm/webxr/VRButton.js';
 import GUI from 'lil-gui';
 // @ts-ignore
@@ -39,7 +41,7 @@ const isVrEnabled = !!params.get('vr');
 
 const scene = new THREE.Scene();
 // scene.add(new THREE.AmbientLight(0x111111));
-const light = new THREE.DirectionalLight(0xffffff, 4);
+const light = new THREE.DirectionalLight(0xffffff, 6);
 light.position.set(100, 100, 100);
 scene.add(light);
 
@@ -65,6 +67,8 @@ camera.position.z = 20000000;
 
 const renderer = new THREE.WebGLRenderer({antialias: true, logarithmicDepthBuffer: true});
 renderer.setSize(window.innerWidth, window.innerHeight);
+
+// See https://www.donmccurdy.com/2020/06/17/color-management-in-threejs/
 renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.physicallyCorrectLights = true;
 
@@ -153,6 +157,18 @@ const earthTex = loader.load(earthDiffuseMap2);
 earthTex.encoding = THREE.sRGBEncoding;
 const moonTex = loader.load(moonDiffuseMap);
 moonTex.encoding = THREE.sRGBEncoding;
+const sunMat = new THREE.ShaderMaterial({
+    uniforms: {
+        time: {value: 0},
+        resolution: {value: new THREE.Vector4()},
+    },
+    depthWrite: true,
+    depthTest: true,
+    transparent: false,
+    opacity: 1.0,
+    vertexShader: sunVert,
+    fragmentShader: sunFrag,
+});
 const bodies = [
     // { size: .01, scale: 0.0001, label: 'microscopic (1µm)' }, // FIXME - triangulating text fails at this size, so we scale instead
     // { size: .01, scale: 0.1, label: 'minuscule (1mm)' },
@@ -162,33 +178,39 @@ const bodies = [
     {size: 100, scale: 1.0, label: 'building-sized (100m)'},
     {size: 1000, scale: 1.0, label: 'a kilometer (1km)'},
     {size: 10000, scale: 1.0, label: 'city-sized (10km)'},
+    // {
+    //     label: 'Moon (3,400 km)',
+    //     size: 3400000,
+    //     scale: 1.0,
+    //     material: new THREE.MeshStandardMaterial({
+    //         map: moonTex,
+    //         bumpMap: loader.load(moonBumpMap),
+    //         bumpScale: 10000.0,
+    //     }),
+    // },
+    // {
+    //     label: 'Earth (12,700 km)',
+    //     size: 12742000,
+    //     scale: 1.0,
+    //     material: new THREE.MeshPhongMaterial({
+    //         map: earthTex,
+    //         specularMap: loader.load(earthSpecularMap2),
+    //         shininess: 50.0,
+    //         // roughnessMap: loader.load(earthSpecularMap2),
+    //         // reflectivity: 0.5,
+    //         bumpMap: loader.load(earthBumpMap),
+    //         bumpScale: 10000.0,
+    //     }),
+    //     material2: new THREE.MeshPhongMaterial({
+    //         color: 0xFFFFFF,
+    //         alphaMap: loader.load(earthCloudsAlphaMap),
+    //     }),
+    // },
     {
-        label: 'Moon (3,400 km)',
-        size: 3400000,
+        label: 'Sun (1,391,000 km)',
+        size: 1391000000,
         scale: 1.0,
-        material: new THREE.MeshStandardMaterial({
-            map: moonTex,
-            bumpMap: loader.load(moonBumpMap),
-            bumpScale: 10000.0,
-        }),
-    },
-    {
-        label: 'Earth (12,700 km)',
-        size: 12742000,
-        scale: 1.0,
-        material: new THREE.MeshPhongMaterial({
-            map: earthTex,
-            specularMap: loader.load(earthSpecularMap2),
-            shininess: 50.0,
-            // roughnessMap: loader.load(earthSpecularMap2),
-            // reflectivity: 0.5,
-            bumpMap: loader.load(earthBumpMap),
-            bumpScale: 10000.0,
-        }),
-        material2: new THREE.MeshPhongMaterial({
-            color: 0xFFFFFF,
-            alphaMap: loader.load(earthCloudsAlphaMap),
-        }),
+        material: sunMat,
     },
     {
         label: 'sun-sized (1,400,000 km)',
@@ -311,6 +333,10 @@ function animate() {
     //     }
     // }
     // alphas.needsUpdate = true; // important!
+
+    // for the Sun shader
+    sunMat.uniforms.time.value += 0.05;
+    sunMat.needsUpdate = true;
 
     render();
 }
