@@ -1,9 +1,4 @@
-#ifdef USE_LOGDEPTHBUF
-	uniform float logDepthBufFC;
-	#ifdef USE_LOGDEPTHBUF_EXT
-		varying float vFragDepth;
-	#endif
-#endif
+@import ./logdepth_pre_frag;
 
 varying vec3 vertex;
 uniform float logDist;
@@ -41,7 +36,5 @@ void main() {
   color = pow(color, 1.0 / 2.2);
   gl_FragColor = vec4(vec3(1.0), color * intensity);
 
-  #if defined(USE_LOGDEPTHBUF) && defined(USE_LOGDEPTHBUF_EXT)
-    gl_FragDepthEXT = log2(vFragDepth) * logDepthBufFC * 0.5;
-  #endif
+  @import ./logdepth_post_frag;
 }
