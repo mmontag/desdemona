@@ -4,13 +4,15 @@ import starfieldVert from './starfield_vert.glsl';
 import starfieldFrag from './starfield_frag.glsl';
 import gridVert from './grid_vert.glsl';
 import gridFrag from './grid_frag.glsl';
+import glowVert from './glow_vert.glsl';
+import glowFrag from './glow_frag.glsl';
 import sunVert from './sun_vert.glsl';
 import sunFrag from './sun_frag.glsl';
 import {VRButton} from 'three/examples/jsm/webxr/VRButton.js';
 import GUI from 'lil-gui';
 // @ts-ignore
 import {Text} from 'troika-three-text';
-import {sRGBEncoding} from "three";
+import {BackSide, sRGBEncoding} from "three";
 // @ts-ignore
 // import ThreeMeshUI from 'three-mesh-ui';
 // import * as ThreeMeshUI from 'three-mesh-ui/build/three-mesh-ui.module.js';
@@ -161,6 +163,7 @@ const sunMat = new THREE.ShaderMaterial({
     uniforms: {
         time: {value: 0},
         resolution: {value: new THREE.Vector4()},
+        distance: {value: 1},
     },
     depthWrite: true,
     depthTest: true,
@@ -178,51 +181,51 @@ const bodies = [
     {size: 100, scale: 1.0, label: 'building-sized (100m)'},
     {size: 1000, scale: 1.0, label: 'a kilometer (1km)'},
     {size: 10000, scale: 1.0, label: 'city-sized (10km)'},
-    // {
-    //     label: 'Moon (3,400 km)',
-    //     size: 3400000,
-    //     scale: 1.0,
-    //     material: new THREE.MeshStandardMaterial({
-    //         map: moonTex,
-    //         bumpMap: loader.load(moonBumpMap),
-    //         bumpScale: 10000.0,
-    //     }),
-    // },
-    // {
-    //     label: 'Earth (12,700 km)',
-    //     size: 12742000,
-    //     scale: 1.0,
-    //     material: new THREE.MeshPhongMaterial({
-    //         map: earthTex,
-    //         specularMap: loader.load(earthSpecularMap2),
-    //         shininess: 50.0,
-    //         // roughnessMap: loader.load(earthSpecularMap2),
-    //         // reflectivity: 0.5,
-    //         bumpMap: loader.load(earthBumpMap),
-    //         bumpScale: 10000.0,
-    //     }),
-    //     material2: new THREE.MeshPhongMaterial({
-    //         color: 0xFFFFFF,
-    //         alphaMap: loader.load(earthCloudsAlphaMap),
-    //     }),
-    // },
+    {
+        label: 'Moon (3,400 km)',
+        size: 3400000,
+        scale: 1.0,
+        material: new THREE.MeshStandardMaterial({
+            map: moonTex,
+            bumpMap: loader.load(moonBumpMap),
+            bumpScale: 10000.0,
+        }),
+    },
+    {
+        label: 'Earth (12,700 km)',
+        size: 12742000,
+        scale: 1.0,
+        material: new THREE.MeshPhongMaterial({
+            map: earthTex,
+            specularMap: loader.load(earthSpecularMap2),
+            shininess: 50.0,
+            // roughnessMap: loader.load(earthSpecularMap2),
+            // reflectivity: 0.5,
+            bumpMap: loader.load(earthBumpMap),
+            bumpScale: 10000.0,
+        }),
+        material2: new THREE.MeshPhongMaterial({
+            color: 0xFFFFFF,
+            alphaMap: loader.load(earthCloudsAlphaMap),
+        }),
+    },
     {
         label: 'Sun (1,391,000 km)',
         size: 1391000000,
         scale: 1.0,
         material: sunMat,
     },
-    {
-        label: 'sun-sized (1,400,000 km)',
-        size: 1391000000,
-        scale: 1.0,
-        material: new THREE.MeshPhongMaterial({
-            map: sunTex,
-            emissiveMap: sunTex,
-            emissive: 0xffffff,
-            shininess: 0,
-        }),
-    },
+    // {
+    //     label: 'sun-sized (1,400,000 km)',
+    //     size: 1391000000,
+    //     scale: 1.0,
+    //     material: new THREE.MeshPhongMaterial({
+    //         map: sunTex,
+    //         emissiveMap: sunTex,
+    //         emissive: 0xffffff,
+    //         shininess: 0,
+    //     }),
+    // },
     {size: 7.47e12, scale: 1.0, label: 'solar system-sized (50Au)'},
     {size: 9.4605284e15, scale: 1.0, label: 'gargantuan (1 light year)'},
     {size: 3.08567758e16, scale: 1.0, label: 'ludicrous (1 parsec)'},
@@ -267,6 +270,22 @@ for (let i = 0; i < bodies.length; i++) {
     if (body.material) {
         bodymesh = new THREE.Mesh(sphere, body.material);
         body.material.needsUpdate = true;
+
+        if (body.label.includes('Sun')) {
+            const glowMat = new THREE.ShaderMaterial({
+                depthWrite: false,
+                depthTest: true,
+                side: THREE.BackSide,
+                transparent: true,
+                opacity: 1.0,
+                vertexShader: glowVert,
+                fragmentShader: glowFrag,
+                blending: THREE.AdditiveBlending,
+            });
+            const glowMesh = new THREE.Mesh(sphere, glowMat);
+            glowMesh.scale.multiplyScalar(body.size * 1.25);
+            group.add(glowMesh);
+        }
     } else {
         bodymesh = new THREE.Mesh(sphere, mat);
     }
@@ -320,6 +339,8 @@ function animate() {
     gridMat.uniforms.logDist.value = logDist;
     const gridSize = Math.pow(10, Math.floor(logDist));
     planeMesh.scale.set(gridSize, 1, gridSize);
+
+    sunMat.uniforms.distance.value = camera.position.distanceTo(origin);
 
     // const alphas = geometry.attributes.alpha;
     // const count = alphas.count;

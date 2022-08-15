@@ -3,6 +3,7 @@
 
 uniform float time;
 uniform float progress;
+uniform float distance;
 uniform sampler2D texture1;
 uniform vec4 resolution;
 varying vec2 vUv;
@@ -16,7 +17,7 @@ float fbm(vec4 p) {
   float amp = 0.3;
   float scale = 1.;
 
-  for (int i = 0; i < 6; i++) {
+  for (int i = 0; i < 8; i++) {
     sum += snoise(p * scale) * amp;
     p.w += 100.;
     amp *= 0.8;
@@ -36,13 +37,17 @@ float Fresnel(vec3 eyeVector, vec3 worldNormal) {
 
 void main() {
 
-  vec4 p = vec4(vPosition*3., time*0.01);
-//   vec3 noisy = brightnessToColor(fbm(p) * 4.);
-  float noisy = max(fbm(p), 0.);
-  vec4 p1 = vec4(vPosition*3., time * 0.01) * 0.1;
-  float spots = max(snoise(p1), 0.);
-  float b = max(noisy - spots, 0.);
-  float fres = Fresnel(eyeVector, vNormal);
+  vec4 p = vec4(vPosition*3., time*0.005);
+  float b = max(fbm(p), 0.);
+
+// Gain intensity as camera moves away
+  float dGain = 9e8 / distance;
+
+//   vec4 p1 = vec4(vPosition*3., time*0.01) * 0.1;
+//   float spots = max(snoise(p1), 0.);
+//   b = max(b - spots, 0.);
+
+  float fres = pow(Fresnel(eyeVector, vNormal), min(0.6,dGain));
   b += fres * .5;
 
   vec3 color = brightnessToColor(b * 4. + 1.);
