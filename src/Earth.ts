@@ -1,6 +1,7 @@
-// https://www.solarsystemscope.com/textures/
 import * as THREE from "three";
+import {Mesh, MeshPhongMaterial, SphereGeometry} from "three";
 
+// https://www.solarsystemscope.com/textures/
 const earthDiffuseMap = require('./assets/8k_earth_daymap.jpg');
 const earthSpecularMap = require('./assets/8k_earth_specular_map.png');
 const earthCloudsAlphaMap = require('./assets/2k_earth_clouds.jpg');
@@ -34,14 +35,19 @@ const loader = new THREE.TextureLoader();
 
 const earthTex = loader.load(earthDiffuseMap2);
 earthTex.encoding = THREE.sRGBEncoding;
+const cloudTex = loader.load(earthCloudsAlphaMap);
+
+// console.log('cloud data:', cloudTex.source.data);
+// cloudTex.encoding = THREE.sRGBEncoding; // Too dark
 
 export class Earth extends THREE.Group {
     private rotationRate: number;
+    private clouds: Mesh<SphereGeometry, MeshPhongMaterial>;
 
     constructor() {
         super();
 
-        this.rotationRate = 0.001;
+        this.rotationRate = 0.0005;
 
         // Surface
         const mat = new THREE.MeshPhongMaterial({
@@ -58,10 +64,18 @@ export class Earth extends THREE.Group {
         this.add(earth);
 
         // Clouds
-
+        const cloudMat = new THREE.MeshPhongMaterial({
+            color: 0xFFFFFF,
+            alphaMap: cloudTex,
+            transparent: true,
+        });
+        this.clouds = new THREE.Mesh(sphere, cloudMat);
+        this.clouds.scale.multiplyScalar(1.01);
+        this.add(this.clouds);
     }
 
     update() {
         this.rotation.y += this.rotationRate;
+        this.clouds.rotation.y -= this.rotationRate * 0.5;
     }
 }

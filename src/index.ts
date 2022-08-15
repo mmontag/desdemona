@@ -14,12 +14,10 @@ import GUI from 'lil-gui';
 import {Text} from 'troika-three-text';
 import {BackSide, sRGBEncoding} from "three";
 import {Earth} from "./Earth";
+import {Moon} from "./Moon";
 // @ts-ignore
 // import ThreeMeshUI from 'three-mesh-ui';
 // import * as ThreeMeshUI from 'three-mesh-ui/build/three-mesh-ui.module.js';
-
-const moonDiffuseMap = require('./assets/lroc_color_poles_2k.jpg');
-const moonBumpMap = require('./assets/lroc_color_poles_2k_disp.jpg');
 
 const sunDiffuseMap = require('./assets/2k_sun.jpg');
 
@@ -144,13 +142,11 @@ planeMesh.renderOrder = 1000;
 scene.add(planeMesh);
 
 // TODO: figure out ThreeJS idiomatic way to do this; propagate the update loop
-const sceneGraph: Earth[] = [];
+const sceneGraph: Array<Earth|Moon> = [];
 
 const loader = new THREE.TextureLoader();
 const sunTex = loader.load(sunDiffuseMap);
 sunTex.encoding = THREE.sRGBEncoding;
-const moonTex = loader.load(moonDiffuseMap);
-moonTex.encoding = THREE.sRGBEncoding;
 const sunMat = new THREE.ShaderMaterial({
     uniforms: {
         time: {value: 0},
@@ -176,12 +172,7 @@ const bodies = [
     {
         label: 'Moon (3,400 km)',
         size: 3400000,
-        scale: 1.0,
-        material: new THREE.MeshStandardMaterial({
-            map: moonTex,
-            bumpMap: loader.load(moonBumpMap),
-            bumpScale: 10000.0,
-        }),
+        model: new Moon(),
     },
     {
         label: 'Earth (12,700 km)',
