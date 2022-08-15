@@ -13,21 +13,13 @@ import GUI from 'lil-gui';
 // @ts-ignore
 import {Text} from 'troika-three-text';
 import {BackSide, sRGBEncoding} from "three";
+import {Earth} from "./Earth";
 // @ts-ignore
 // import ThreeMeshUI from 'three-mesh-ui';
 // import * as ThreeMeshUI from 'three-mesh-ui/build/three-mesh-ui.module.js';
 
 const moonDiffuseMap = require('./assets/lroc_color_poles_2k.jpg');
 const moonBumpMap = require('./assets/lroc_color_poles_2k_disp.jpg');
-
-// https://www.solarsystemscope.com/textures/
-const earthDiffuseMap = require('./assets/8k_earth_daymap.jpg');
-const earthSpecularMap = require('./assets/8k_earth_specular_map.png');
-const earthCloudsAlphaMap = require('./assets/2k_earth_clouds.jpg');
-// http://www.shadedrelief.com/natural3/pages/textures.html
-const earthDiffuseMap2 = require('./assets/8k_earth_4_no_ice_clouds_mts.jpg');
-const earthSpecularMap2 = require('./assets/8k_earth_water.png');
-const earthBumpMap = require('./assets/8k_earth_bump.jpg');
 
 const sunDiffuseMap = require('./assets/2k_sun.jpg');
 
@@ -151,12 +143,12 @@ const planeMesh = new THREE.Mesh(plane, gridMat);
 planeMesh.renderOrder = 1000;
 scene.add(planeMesh);
 
+// TODO: figure out ThreeJS idiomatic way to do this; propagate the update loop
+const sceneGraph: Earth[] = [];
 
 const loader = new THREE.TextureLoader();
 const sunTex = loader.load(sunDiffuseMap);
 sunTex.encoding = THREE.sRGBEncoding;
-const earthTex = loader.load(earthDiffuseMap2);
-earthTex.encoding = THREE.sRGBEncoding;
 const moonTex = loader.load(moonDiffuseMap);
 moonTex.encoding = THREE.sRGBEncoding;
 const sunMat = new THREE.ShaderMaterial({
@@ -194,20 +186,7 @@ const bodies = [
     {
         label: 'Earth (12,700 km)',
         size: 12742000,
-        scale: 1.0,
-        material: new THREE.MeshPhongMaterial({
-            map: earthTex,
-            specularMap: loader.load(earthSpecularMap2),
-            shininess: 50.0,
-            // roughnessMap: loader.load(earthSpecularMap2),
-            // reflectivity: 0.5,
-            bumpMap: loader.load(earthBumpMap),
-            bumpScale: 10000.0,
-        }),
-        material2: new THREE.MeshPhongMaterial({
-            color: 0xFFFFFF,
-            alphaMap: loader.load(earthCloudsAlphaMap),
-        }),
+        model: new Earth(),
     },
     {
         label: 'Sun (1,391,000 km)',
@@ -237,14 +216,6 @@ let runningPosition = 0;
 const spacingFactor = 1.0;
 for (let i = 0; i < bodies.length; i++) {
     const body = bodies[i];
-    const scale = body.scale || 1;
-    const color = new THREE.Color().setHSL((i % 10) / 10, 0.5, 0.6).convertSRGBToLinear();
-    const mat = new THREE.MeshPhongMaterial({
-        color: color,
-        specular: 0x050505,
-        shininess: 50,
-        emissive: 0,
-    });
     const group = new THREE.Group();
     // group.position.x += Math.pow(body.size, 0.96);
     group.position.y += body.size * 0.5;
@@ -253,6 +224,14 @@ for (let i = 0; i < bodies.length; i++) {
     runningPosition = group.position.z - body.size * 0.5 - spacing;
     scene.add(group);
 
+    const scale = body.scale || 1;
+    const color = new THREE.Color().setHSL((i % 10) / 10, 0.5, 0.6).convertSRGBToLinear();
+    const mat = new THREE.MeshPhongMaterial({
+        color: color,
+        specular: 0x050505,
+        shininess: 50,
+        emissive: 0,
+    });
     // Text Label
     const label = new Text();
     label.position.y -= body.size * 0.5;
@@ -267,7 +246,10 @@ for (let i = 0; i < bodies.length; i++) {
 
     // Sphere Geometry
     let bodymesh;
-    if (body.material) {
+    if (body.model) {
+        bodymesh = body.model;
+        sceneGraph.push(body.model);
+    } else if (body.material) {
         bodymesh = new THREE.Mesh(sphere, body.material);
         body.material.needsUpdate = true;
 
@@ -325,8 +307,7 @@ let speed = 0.1;
 function animate() {
     requestAnimationFrame(animate);
 
-    // cube.rotation.x += 0.01;
-    // cube.rotation.y += 0.01;
+    sceneGraph.forEach(s => s.update());
 
     controls.update();
 
