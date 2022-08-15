@@ -20,15 +20,15 @@ module.exports = {
       }
     ],
   },
-  // resolve: {
-  //   alias: {
-  //     three: path.resolve('./node_modules/three')
-  //     // For three-mesh-ui
-  //     // 'three/.*$': 'three',
-  //     // // don't need to register alias for every module
-  //   },
-  //   extensions: ['.tsx', '.ts', '.js'],
-  // },
+  resolve: {
+    alias: {
+      three: path.resolve('./node_modules/three')
+      // For three-mesh-ui
+      // 'three/.*$': 'three',
+      // // don't need to register alias for every module
+    },
+    extensions: ['.tsx', '.ts', '.js'],
+  },
   // For three-mesh-ui
   // plugins: [
   //   new webpack.ProvidePlugin({
