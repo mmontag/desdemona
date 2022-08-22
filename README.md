@@ -22,6 +22,8 @@ Desdemona is an interactive playground for exploring vast scale differences in t
 
 - https://www.youtube.com/watch?v=3krH52AhPqk&list=PL27873906647D7B36&index=2&t=436s
 
+- https://beltoforion.de/en/spiral_galaxy_renderer/spiral-galaxy-renderer.html
+
 ### Textures
 
 #### Earth
